@@ -1,0 +1,8 @@
+*~
+*swp
+*user
+*.a
+*.o
+lib/
+obj/
+bin/
