@@ -1,0 +1,6 @@
+[submodule "test/testcpp"]
+	path = test/testcpp
+	url = git://github.com/mrts/test-cpp.git
+[submodule "include/utilcpp"]
+	path = include/utilcpp
+	url = git://github.com/mrts/util-cpp.git

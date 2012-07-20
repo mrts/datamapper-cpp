@@ -1,0 +1,7 @@
+test/obj/main.o: test/src/main.cpp include/datamappercpp/SqlBuilder.h \
+  include/utilcpp/release_assert.h include/utilcpp/disable_copy.h \
+  test/testcpp/include/testcpp/testcpp.h include/utilcpp/declarations.h \
+  include/utilcpp/scoped_ptr.h \
+  test/testcpp/include/testcpp/assert_impl.h \
+  test/testcpp/include/testcpp/StdOutView.h \
+  test/testcpp/include/testcpp/detail/TextStreamTestView.h
