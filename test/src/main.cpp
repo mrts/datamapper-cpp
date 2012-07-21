@@ -1,11 +1,17 @@
-#include <datamappercpp/SqlBuilder.h>
+#include <datamappercpp/sql/StatementBuilder.h>
 
 #include <testcpp/testcpp.h>
 #include <testcpp/StdOutView.h>
 
 #include <iostream>
 
-class PersonMapper
+struct Person
+{
+    std::string name;
+    int age;
+};
+
+class PersonMapping
 {
 public:
     static std::string getLabel()
@@ -14,8 +20,16 @@ public:
     template <class Visitor>
     static void accept(Visitor& visitor)
     {
-        visitor.addField(Field<std::string>("name", "UNIQUE NOT NULL"));
-        visitor.addField(Field<int>("age"));
+        // or visitor << Field(...) ?
+        visitor.addField(dm::Field<std::string>("name", "UNIQUE NOT NULL"));
+        visitor.addField(dm::Field<int>("age"));
+    }
+
+    template <class Visitor>
+    static void accept(Visitor& visitor, Person& p)
+    {
+        visitor.accessField("name", p.name);
+        visitor.accessField("age",  p.age);
     }
 
     static std::string customCreateStatements()
@@ -32,7 +46,13 @@ public:
 
     void test()
     {
-        typedef StatementBuilder<PersonMapper> PersonSQL;
+        testSqlStatementBuilding();
+        // testSingleObjectLoading();
+    }
+
+    void testSqlStatementBuilding()
+    {
+        typedef dm::sql::StatementBuilder<PersonMapping> PersonSQL;
 
         Test::assertEqual<std::string>(
                 "Create table statement is correct",
