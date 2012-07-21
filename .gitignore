@@ -7,3 +7,4 @@ lib/
 obj/
 bin/
 datamappercpp-test
+test.sqlite

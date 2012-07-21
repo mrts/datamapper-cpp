@@ -1,61 +1,48 @@
-LIBNAME  = datamappercpp
+# Dependency on dbc-cpp
 
-# General variables
-
-TARGET   = lib/lib$(LIBNAME).a
+DBCCPPDIR    = lib/dbccpp
+DBCCPPLIB    = $(DBCCPPDIR)/lib/libdbccpp.a
+DBCPPINCPATH = -I$(DBCCPPDIR)/include
+DBCCPPLIBS   = -L$(DBCCPPDIR)/lib -ldbccpp -lsqlite3
 
 # For building with clang++ 3.1 in Ubuntu 12.04, install system clang and
 # add -I/usr/include/clang/3.0/include to compile flags
 
 OPTIMIZE = -O2 # -g -std=c++0x | -std=c++11
-COMPILER = clang++-3.1 # g++
+COMPILER = clang++ # g++
 
 CXX      = $(COMPILER)
 CXXFLAGS = -pipe $(OPTIMIZE) -fPIC -Wall -Wextra -Werror -D_REENTRANT
-INCPATH  = -Iinclude -I/usr/include/clang/3.0/include
+INCPATH  = -Iinclude $(DBCPPINCPATH)
 
 TEST        = datamappercpp-test
 TESTCPPDIR  = test/testcpp
 TESTCPPLIB  = $(TESTCPPDIR)/lib/libtestcpp.a
 TESTINCPATH = $(INCPATH) -I$(TESTCPPDIR)/include
+TESTCPPLIBS = -L$(TESTCPPDIR)/lib -ltestcpp
 
 LINK     = $(COMPILER)
 LFLAGS   = -Wl,-O1
-LIBS     = -Llib -l$(LIBNAME) -L$(TESTCPPDIR)/lib -ltestcpp -lsqlite3 
-
-AR       = ar cqs
+LIBS     = $(TESTCPPLIBS) $(DBCCPPLIBS)
 
 DEP      = Makefile.dep
-
-# Generic source file lists
-
-SRC      = $(wildcard src/*.cpp) \
-           $(wildcard src/sqlite/*.cpp)
-
-OBJS     = $(patsubst src/%.cpp, obj/%.o, $(SRC))
 
 TESTSRC  = $(wildcard test/src/*.cpp)
 TESTOBJS = $(patsubst test/src/%.cpp, test/obj/%.o, $(TESTSRC))
 
 # Targets
 
-obj/%.o: src/%.cpp
-	mkdir -p obj
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
-
-$(TARGET): $(OBJS)
-	mkdir -p lib
-	rm -f $@
-	$(AR) $@ $(OBJS)
-
 test/obj/%.o: test/src/%.cpp
 	mkdir -p test/obj
 	$(CXX) -c $(CXXFLAGS) $(TESTINCPATH) -o $@ $<
 
 $(TESTCPPLIB): $(TESTCPPDIR)/Makefile
-	cd $(TESTCPPDIR); make
+	cd $(TESTCPPDIR); make -j 4
 
-$(TEST): $(TARGET) $(TESTOBJS) $(TESTCPPLIB)
+$(DBCCPPLIB): $(DBCCPPDIR)/Makefile
+	cd $(DBCCPPDIR); make -j 4
+
+$(TEST): $(TESTOBJS) $(TESTCPPLIB) $(DBCCPPLIB)
 	$(LINK) $(LFLAGS) -o $@ $(TESTOBJS) $(LIBS)
 
 test: $(TEST)
@@ -65,7 +52,7 @@ dbg: $(TEST)
 	cgdb ./$(TEST)
 
 clean:
-	rm -f $(OBJS) $(TARGET) $(TESTOBJS) $(TEST)
+	rm -f $(OBJS) $(TESTOBJS) $(TEST)
 
 # Automatic dependency handling
 

@@ -4,3 +4,6 @@
 [submodule "include/utilcpp"]
 	path = include/utilcpp
 	url = git://github.com/mrts/util-cpp.git
+[submodule "lib/dbccpp"]
+	path = lib/dbccpp
+	url = git://github.com/mrts/dbc-cpp.git
