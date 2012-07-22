@@ -86,12 +86,40 @@ public:
         return sql.str();
     }
 
-    static std::string LoadByIdStatement()
+    static std::string DeleteAllStatement()
     {
-        return LoadByFieldStatement("id");
+        std::ostringstream sql;
+
+        sql << "DELETE FROM " << Mapping::getLabel();
+
+        return sql.str();
     }
 
-    static std::string LoadByFieldStatement(const std::string field)
+    static std::string DeleteByIdStatement()
+    {
+        std::ostringstream sql;
+
+        sql << "DELETE FROM " << Mapping::getLabel()
+            << " WHERE id=?";
+
+        return sql.str();
+    }
+
+    static std::string SelectAllStatement()
+    {
+        std::ostringstream sql;
+
+        sql << "SELECT * FROM " << Mapping::getLabel();
+
+        return sql.str();
+    }
+
+    static std::string SelectByIdStatement()
+    {
+        return SelectByFieldStatement("id");
+    }
+
+    static std::string SelectByFieldStatement(const std::string field)
     {
         std::ostringstream sql;
 

@@ -7,11 +7,30 @@
 namespace dm {
 namespace sql {
 
-class MoreThanOneError : public std::runtime_error
+class ErrorBase : public std::runtime_error
 {
 public:
-    MoreThanOneError(const std::string& msg)
-        : std::runtime_error(msg)
+    ErrorBase(const std::string& msg) :
+        std::runtime_error(msg)
+    { }
+
+    virtual ~ErrorBase() throw()
+    { }
+};
+
+class NotOneError : public ErrorBase
+{
+public:
+    NotOneError(const std::string& msg) :
+        ErrorBase(msg)
+    { }
+};
+
+class DoesNotExistError : public ErrorBase
+{
+public:
+    DoesNotExistError(const std::string& msg) :
+        ErrorBase(msg)
     { }
 };
 

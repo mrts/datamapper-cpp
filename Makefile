@@ -8,6 +8,9 @@ DBCCPPLIBS   = -L$(DBCCPPDIR)/lib -ldbccpp -lsqlite3
 # For building with clang++ 3.1 in Ubuntu 12.04, install system clang and
 # add -I/usr/include/clang/3.0/include to compile flags
 
+# For `clang++ --coverage` support:
+#    ln -s sudo ln -s /usr/lib/llvm-3.0/lib/libprofile_rt.a /usr/lib
+
 OPTIMIZE = -O2 # -g -std=c++0x | -std=c++11
 COMPILER = clang++ # g++
 
@@ -52,7 +55,7 @@ dbg: $(TEST)
 	cgdb ./$(TEST)
 
 clean:
-	rm -f $(OBJS) $(TESTOBJS) $(TEST)
+	rm -f $(OBJS) $(TESTOBJS) $(TEST) $(DBCCPPLIB) $(TESTCPPLIB)
 
 # Automatic dependency handling
 

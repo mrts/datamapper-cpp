@@ -71,8 +71,8 @@ private:
 };
 
 /**
- * Repositories transfer domain entities and their collections to and from
- * database.
+ * Repository transfers domain entities and their collections to and from
+ * the database.
  *
  * Relies on Return Value Optimization and returns entities and collections by
  * copy.
@@ -81,6 +81,8 @@ template <class Entity, class Mapping>
 class Repository
 {
 public:
+    typedef std::vector<Entity> Entities;
+
     static void CreateTable(bool enableTransaction = true)
     {
         Transaction transaction(enableTransaction);
@@ -90,7 +92,7 @@ public:
         transaction.commit();
     }
 
-    static void Save(std::vector<Entity>& entities,
+    static void Save(Entities& entities,
                      bool enableTransaction = true)
     {
         Transaction transaction(enableTransaction);
@@ -132,13 +134,57 @@ public:
         if (howmany != 1)
         {
             std::ostringstream msg;
-            msg << howmany << " rows affected during save instead of 1";
-            throw MoreThanOneError(msg.str());
+            msg << howmany << " rows affected while saving single entity "
+                << "instead of 1";
+            throw NotOneError(msg.str());
         }
 
         if (!update)
             // insert needs to set the object id after insert
             entity.id = statement->getLastInsertId();
+
+        transaction.commit();
+    }
+
+    static void Delete(Entity& entity,
+                bool enableTransaction = true,
+                bool checkOneDeleted = true)
+    {
+        if (entity.id < 1)
+            throw std::invalid_argument("Entity ID is less than 1");
+
+        Delete(entity.id, enableTransaction, checkOneDeleted);
+
+        entity.id = -1;
+    }
+
+    static void Delete(int id,
+                bool enableTransaction = true,
+                bool checkOneDeleted = true)
+    {
+        prepareStatement(_deleteEntityStatement,
+                         &StatementBuilder<Mapping>::DeleteByIdStatement);
+        *_deleteEntityStatement << id;
+
+        Transaction transaction(enableTransaction);
+
+        int howmany = _deleteEntityStatement->executeUpdate();
+        if (checkOneDeleted && howmany != 1)
+        {
+            std::ostringstream msg;
+            msg << howmany << " rows affected while deleting single entity "
+                << "instead of 1";
+            throw NotOneError(msg.str());
+        }
+
+        transaction.commit();
+    }
+
+    static void DeleteAll(bool enableTransaction = true)
+    {
+        Transaction transaction(enableTransaction);
+
+        ExecuteStatement(StatementBuilder<Mapping>::DeleteAllStatement());
 
         transaction.commit();
     }
@@ -152,19 +198,18 @@ public:
             throw std::invalid_argument("ID is less than 1");
 
         prepareStatement(_getEntityByIdStatement,
-                         &StatementBuilder<Mapping>::LoadByIdStatement);
+                         &StatementBuilder<Mapping>::SelectByIdStatement);
         *_getEntityByIdStatement << id;
 
         return GetByQueryImpl(_getEntityByIdStatement, false, id);
     }
 
-    // TODO: note that value comes by copy, use enable_if
     template <typename Value>
-    static Entity GetByField(const std::string& fieldname, Value value,
+    static Entity GetByField(const std::string& fieldname, const Value& value,
             bool allowMany = false)
     {
         Statement statement = PrepareStatement(
-                StatementBuilder<Mapping>::LoadByFieldStatement(fieldname));
+                StatementBuilder<Mapping>::SelectByFieldStatement(fieldname));
         *statement << value;
         return GetByQueryImpl(statement, allowMany, -1);
     }
@@ -182,11 +227,59 @@ public:
         return GetByQueryImpl(statement, allowMany, -1);
     }
 
+    static Entities GetAll()
+    {
+        prepareStatement(_getAllEntitiesStatement,
+                         &StatementBuilder<Mapping>::SelectAllStatement);
+
+        return GetManyByQuery(_getAllEntitiesStatement);
+    }
+
+    template <typename Value>
+    static Entities GetManyByField(const std::string& fieldname, Value value)
+    {
+        Statement statement = PrepareStatement(
+                StatementBuilder<Mapping>::SelectByFieldStatement(fieldname));
+        *statement << value;
+
+        return GetManyByQuery(statement);
+    }
+
+    static Entities GetManyByQuery(const std::string& sql)
+    {
+        Statement statement = PrepareStatement(sql);
+        return GetManyByQuery(statement);
+    }
+
+    static Entities GetManyByQuery(Statement& statement)
+    {
+        Entities entities;
+        dbc::ResultSet::ptr result(statement->executeQuery());
+
+        while (result->next())
+        {
+            Entity entity;
+            entity.id = result->get<int>(0);
+
+            ObjectFieldBinder fieldbinder(result);
+            Mapping::accept(fieldbinder, entity);
+
+            entities.push_back(entity);
+        }
+
+        return entities;
+    }
+
     static void ResetStatements()
     {
+        // Free the resources associated with prepared statments.
+        // The statements are phoenix singletons that spring to life
+        // as needed.
         _insertEntityStatement.reset();
         _updateEntityStatement.reset();
+        _deleteEntityStatement.reset();
         _getEntityByIdStatement.reset();
+        _getAllEntitiesStatement.reset();
     }
 
 private:
@@ -194,7 +287,9 @@ private:
 
     static Statement _insertEntityStatement;
     static Statement _updateEntityStatement;
+    static Statement _deleteEntityStatement;
     static Statement _getEntityByIdStatement;
+    static Statement _getAllEntitiesStatement;
 
     inline static void prepareStatement(Statement& statement,
             stdutil::function<std::string (void)> createSqlStatement)
@@ -218,8 +313,18 @@ private:
         dbc::ResultSet::ptr result(statement->executeQuery());
         result->next();
 
-        // TODO: entity.id << *result;
-        entity.id = result->get<int>(0);
+        try
+        {
+            // TODO: entity.id << *result;
+            entity.id = result->get<int>(0);
+        }
+        catch (const dbc::NoResultsError& e)
+        {
+            std::ostringstream msg;
+            msg << "No " << Mapping::getLabel() << " exists for query '"
+                << statement->getSQL() << "'";
+            throw DoesNotExistError(msg.str());
+        }
 
         ObjectFieldBinder fieldbinder(result);
         Mapping::accept(fieldbinder, entity);
@@ -232,21 +337,12 @@ private:
                 msg << "ID " << id;
             else
                 msg << "query '" << statement->getSQL() << "'";
-            throw MoreThanOneError(msg.str());
+            throw NotOneError(msg.str());
         }
 
         return entity;
     }
 
-    /*
-
-    vector<Entity> GetAll();
-    vector<Entity> GetManyByQuery(PreparedStatement q);
-    template <typename Value>
-    vector<Entity> GetManyByField(string fieldname, Value value);
-
-    void Delete(Entity e);
-    */
 };
 
 template <class Entity, class Mapping>
@@ -256,6 +352,12 @@ template <class Entity, class Mapping>
 dbc::PreparedStatement::ptr Repository<Entity, Mapping>::_updateEntityStatement;
 
 template <class Entity, class Mapping>
+dbc::PreparedStatement::ptr Repository<Entity, Mapping>::_deleteEntityStatement;
+
+template <class Entity, class Mapping>
 dbc::PreparedStatement::ptr Repository<Entity, Mapping>::_getEntityByIdStatement;
+
+template <class Entity, class Mapping>
+dbc::PreparedStatement::ptr Repository<Entity, Mapping>::_getAllEntitiesStatement;
 
 } }
