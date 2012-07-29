@@ -15,8 +15,8 @@
 namespace dm {
 namespace sql {
 
-template <class Mapping>
-class StatementBuilder
+template <class Entity, class Mapping>
+class SqlStatementBuilder
 {
 public:
     static std::string CreateTableStatement()
@@ -29,7 +29,7 @@ public:
             << "(id INTEGER PRIMARY KEY AUTOINCREMENT,";
 
         FieldDeclarationBuilder fieldBuilder(sql);
-        Mapping::accept(fieldBuilder);
+        Mapping::accept(fieldBuilder, _dummy_entity);
 
         // replace last comma with ')'
         long pos = sql.tellp();
@@ -54,7 +54,7 @@ public:
 
         InsertStatementFieldBuilder fieldBuilder(columnLabels,
                                                  fieldPlaceholders);
-        Mapping::accept(fieldBuilder);
+        Mapping::accept(fieldBuilder, _dummy_entity);
 
         std::string s = columnLabels.str();
         s.erase(s.end() - 1); // remove last comma
@@ -76,7 +76,7 @@ public:
         sql << "UPDATE " << Mapping::getLabel() << " SET ";
 
         UpdateStatementFieldBuilder fieldBuilder(sql);
-        Mapping::accept(fieldBuilder);
+        Mapping::accept(fieldBuilder, _dummy_entity);
 
         long pos = sql.tellp();
         sql.seekp(pos - 1); // remove last comma
@@ -132,9 +132,13 @@ public:
 private:
     // disable instantiation to assure the class is only used via it's static
     // functions
-    StatementBuilder();
+    SqlStatementBuilder();
 
+    static Entity _dummy_entity;
 };
+
+template <class Entity, class Mapping>
+Entity SqlStatementBuilder<Entity, Mapping>::_dummy_entity;
 
 } }
 

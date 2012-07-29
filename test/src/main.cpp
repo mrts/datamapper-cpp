@@ -1,6 +1,7 @@
-#include <datamappercpp/sql/StatementBuilder.h>
 #include <datamappercpp/sql/Repository.h>
 #include <datamappercpp/sql/db.h>
+
+#include <datamappercpp/sql/detail/SqlStatementBuilder.h>
 
 #include <utilcpp/disable_copy.h>
 
@@ -61,21 +62,15 @@ public:
     { return "person"; }
 
     template <class Visitor>
-    static void accept(Visitor& visitor)
-    {
-        visitor.addField(dm::Field<std::string>("name", "UNIQUE NOT NULL"));
-        visitor.addField(dm::Field<int>("age"));
-        visitor.addField(dm::Field<double>("height"));
-    }
-
-    template <class Visitor>
     static void accept(Visitor& visitor, Person& p)
     {
-        // NOTE THAT FIELD ORDER MUST CURRENTLY BE THE SAME AS IN addField
-        // see note in ObjectFieldBinder::accessField() for improvement
-        visitor.accessField(p.name);
-        visitor.accessField(p.age);
-        visitor.accessField(p.height);
+        // Note that field order is important
+        visitor.accessField(dm::Field<std::string>("name", "UNIQUE NOT NULL"),
+                            p.name);
+        visitor.accessField(dm::Field<int>("age"),
+                            p.age);
+        visitor.accessField(dm::Field<double>("height"),
+                            p.height);
     }
 
     static std::string customCreateStatements()
@@ -116,11 +111,11 @@ public:
 
     void testSqlStatementBuilding()
     {
-        typedef dm::sql::StatementBuilder<PersonMapping> PersonSQL;
+        typedef dm::sql::SqlStatementBuilder<Person, PersonMapping> PersonSql;
 
         Test::assertEqual<std::string>(
                 "Create table statement is correct",
-                PersonSQL::CreateTableStatement(),
+                PersonSql::CreateTableStatement(),
                 "CREATE TABLE IF NOT EXISTS person"
                 "(id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 "name TEXT UNIQUE NOT NULL,"
@@ -130,22 +125,22 @@ public:
 
         Test::assertEqual<std::string>(
                 "Insert statement is correct",
-                PersonSQL::InsertStatement(),
+                PersonSql::InsertStatement(),
                 "INSERT INTO person (name,age,height) VALUES (?,?,?)");
 
         Test::assertEqual<std::string>(
                 "Update statement is correct",
-                PersonSQL::UpdateStatement(),
+                PersonSql::UpdateStatement(),
                 "UPDATE person SET name=?,age=?,height=? WHERE id=?");
 
         Test::assertEqual<std::string>(
                 "Select by ID statement is correct",
-                PersonSQL::SelectByIdStatement(),
+                PersonSql::SelectByIdStatement(),
                 "SELECT * FROM person WHERE id=?");
 
         Test::assertEqual<std::string>(
                 "Select by field statement is correct",
-                PersonSQL::SelectByFieldStatement("age"),
+                PersonSql::SelectByFieldStatement("age"),
                 "SELECT * FROM person WHERE age=?");
     }
 

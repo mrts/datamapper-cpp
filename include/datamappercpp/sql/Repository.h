@@ -1,7 +1,8 @@
-#include <datamappercpp/sql/StatementBuilder.h>
 #include <datamappercpp/sql/Transaction.h>
 #include <datamappercpp/sql/db.h>
 #include <datamappercpp/sql/exceptions.h>
+
+#include <datamappercpp/sql/detail/SqlStatementBuilder.h>
 
 #include <dbccpp/dbccpp.h>
 
@@ -35,8 +36,8 @@ public:
         _statement(statement)
     { }
 
-    template <class FieldType>
-    void accessField(FieldType& field)
+    template <typename T>
+    void accessField(const Field<T>& , const T& field)
     {
         // TODO: *_statement[label] = field
         *_statement << field;
@@ -51,22 +52,21 @@ class ObjectFieldBinder
     UTILCPP_DISABLE_COPY(ObjectFieldBinder)
 
 public:
-    ObjectFieldBinder(dbc::ResultSet::ptr& result) :
+    ObjectFieldBinder(const dbc::ResultSet& result) :
         _result(result),
         // index is 0-based, skip id, which is already set
         _counter(1)
     {}
 
-    template <class FieldType>
-    void accessField(FieldType& field)
+    template <typename T>
+    void accessField(const Field<T>& , T& field)
     {
         // TODO: field = *_result[label]
-        // and field << *_result;
-        field = _result->get<FieldType>(_counter++);
+        field = _result.get<T>(_counter++);
     }
 
 private:
-    dbc::ResultSet::ptr& _result;
+    const dbc::ResultSet& _result;
     unsigned int _counter;
 };
 
@@ -82,12 +82,13 @@ class Repository
 {
 public:
     typedef std::vector<Entity> Entities;
+    typedef SqlStatementBuilder<Entity, Mapping> EntitySqlBuilder;
 
     static void CreateTable(bool enableTransaction = true)
     {
         Transaction transaction(enableTransaction);
 
-        ExecuteStatement(StatementBuilder<Mapping>::CreateTableStatement());
+        ExecuteStatement(EntitySqlBuilder::CreateTableStatement());
 
         transaction.commit();
     }
@@ -111,13 +112,13 @@ public:
         if (update)
         {
             prepareStatement(_updateEntityStatement,
-                             &StatementBuilder<Mapping>::UpdateStatement);
+                             &EntitySqlBuilder::UpdateStatement);
             statement = _updateEntityStatement;
         }
         else
         {
             prepareStatement(_insertEntityStatement,
-                             &StatementBuilder<Mapping>::InsertStatement);
+                             &EntitySqlBuilder::InsertStatement);
             statement = _insertEntityStatement;
         }
 
@@ -163,7 +164,7 @@ public:
                 bool checkOneDeleted = true)
     {
         prepareStatement(_deleteEntityStatement,
-                         &StatementBuilder<Mapping>::DeleteByIdStatement);
+                         &EntitySqlBuilder::DeleteByIdStatement);
         *_deleteEntityStatement << id;
 
         Transaction transaction(enableTransaction);
@@ -184,7 +185,7 @@ public:
     {
         Transaction transaction(enableTransaction);
 
-        ExecuteStatement(StatementBuilder<Mapping>::DeleteAllStatement());
+        ExecuteStatement(EntitySqlBuilder::DeleteAllStatement());
 
         transaction.commit();
     }
@@ -198,7 +199,7 @@ public:
             throw std::invalid_argument("ID is less than 1");
 
         prepareStatement(_getEntityByIdStatement,
-                         &StatementBuilder<Mapping>::SelectByIdStatement);
+                         &EntitySqlBuilder::SelectByIdStatement);
         *_getEntityByIdStatement << id;
 
         return GetByQueryImpl(_getEntityByIdStatement, false, id);
@@ -209,7 +210,7 @@ public:
             bool allowMany = false)
     {
         Statement statement = PrepareStatement(
-                StatementBuilder<Mapping>::SelectByFieldStatement(fieldname));
+                EntitySqlBuilder::SelectByFieldStatement(fieldname));
         *statement << value;
         return GetByQueryImpl(statement, allowMany, -1);
     }
@@ -230,7 +231,7 @@ public:
     static Entities GetAll()
     {
         prepareStatement(_getAllEntitiesStatement,
-                         &StatementBuilder<Mapping>::SelectAllStatement);
+                         &EntitySqlBuilder::SelectAllStatement);
 
         return GetManyByQuery(_getAllEntitiesStatement);
     }
@@ -239,7 +240,7 @@ public:
     static Entities GetManyByField(const std::string& fieldname, Value value)
     {
         Statement statement = PrepareStatement(
-                StatementBuilder<Mapping>::SelectByFieldStatement(fieldname));
+                EntitySqlBuilder::SelectByFieldStatement(fieldname));
         *statement << value;
 
         return GetManyByQuery(statement);
@@ -259,9 +260,9 @@ public:
         while (result->next())
         {
             Entity entity;
-            entity.id = result->get<int>(0);
+            entity.id = (*result)[0];
 
-            ObjectFieldBinder fieldbinder(result);
+            ObjectFieldBinder fieldbinder(*result);
             Mapping::accept(fieldbinder, entity);
 
             entities.push_back(entity);
@@ -316,7 +317,7 @@ private:
         try
         {
             // TODO: entity.id << *result;
-            entity.id = result->get<int>(0);
+            entity.id = (*result)[0];
         }
         catch (const dbc::NoResultsError& e)
         {
@@ -326,7 +327,7 @@ private:
             throw DoesNotExistError(msg.str());
         }
 
-        ObjectFieldBinder fieldbinder(result);
+        ObjectFieldBinder fieldbinder(*result);
         Mapping::accept(fieldbinder, entity);
 
         if (!allowMany && result->next())

@@ -1,7 +1,4 @@
-test/obj/main.o: test/src/main.cpp include/datamappercpp/sql/StatementBuilder.h \
-  include/datamappercpp/Field.h include/utilcpp/release_assert.h \
-  include/datamappercpp/sql/detail/FieldVisitors.h \
-  include/utilcpp/disable_copy.h include/datamappercpp/sql/Repository.h \
+test/obj/main.o: test/src/main.cpp include/datamappercpp/sql/Repository.h \
   include/datamappercpp/sql/Transaction.h include/datamappercpp/sql/db.h \
   lib/dbccpp/include/dbccpp/dbccpp.h \
   lib/dbccpp/include/dbccpp/DbConnection.h \
@@ -9,8 +6,13 @@ test/obj/main.o: test/src/main.cpp include/datamappercpp/sql/StatementBuilder.h 
   lib/dbccpp/include/dbccpp/ResultSet.h include/utilcpp/declarations.h \
   lib/dbccpp/include/dbccpp/DbExceptions.h \
   lib/dbccpp/include/dbccpp/CountProxy.h \
+  lib/dbccpp/include/dbccpp/SubscriptProxy.h \
   include/datamappercpp/sql/exceptions.h \
-  test/testcpp/include/testcpp/testcpp.h include/utilcpp/scoped_ptr.h \
+  include/datamappercpp/sql/detail/SqlStatementBuilder.h \
+  include/datamappercpp/Field.h include/utilcpp/release_assert.h \
+  include/datamappercpp/sql/detail/FieldVisitors.h \
+  include/utilcpp/disable_copy.h test/testcpp/include/testcpp/testcpp.h \
+  include/utilcpp/scoped_ptr.h \
   test/testcpp/include/testcpp/assert_impl.h \
   test/testcpp/include/testcpp/StdOutView.h \
   test/testcpp/include/testcpp/detail/TextStreamTestView.h

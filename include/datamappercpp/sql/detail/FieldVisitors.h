@@ -17,7 +17,7 @@ public:
     { }
 
     template <typename T>
-    void addField(const Field<T>& field)
+    void accessField(const Field<T>& field, const T& )
     {
         _out << field.label << " " << field.typeDefinition() << ",";
     }
@@ -38,7 +38,7 @@ public:
     { }
 
     template <typename T>
-    void addField(const Field<T>& field)
+    void accessField(const Field<T>& field, const T& )
     {
         _labels << field.label << ",";
         _placeholders << "?,";
@@ -59,7 +59,7 @@ public:
     { }
 
     template <typename T>
-    void addField(const Field<T>& field)
+    void accessField(const Field<T>& field, const T& )
     {
         _out << field.label << "=?,";
     }
