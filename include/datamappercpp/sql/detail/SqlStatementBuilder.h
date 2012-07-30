@@ -2,7 +2,7 @@
 #define DATAMAPPERCPP_SQLBUILDER_H__
 
 #include <datamappercpp/Field.h>
-#include <datamappercpp/sql/detail/FieldVisitors.h>
+#include <datamappercpp/sql/detail/StatementBuilderFieldVisitors.h>
 
 #include <utilcpp/release_assert.h>
 #include <utilcpp/disable_copy.h>

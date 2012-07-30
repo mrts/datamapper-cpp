@@ -62,15 +62,12 @@ public:
     { return "person"; }
 
     template <class Visitor>
-    static void accept(Visitor& visitor, Person& p)
+    static void accept(Visitor& v, Person& p)
     {
         // Note that field order is important
-        visitor.accessField(dm::Field<std::string>("name", "UNIQUE NOT NULL"),
-                            p.name);
-        visitor.accessField(dm::Field<int>("age"),
-                            p.age);
-        visitor.accessField(dm::Field<double>("height"),
-                            p.height);
+        v.visitField(dm::Field<std::string>("name", "UNIQUE NOT NULL"), p.name);
+        v.visitField(dm::Field<int>("age"), p.age);
+        v.visitField(dm::Field<double>("height"), p.height);
     }
 
     static std::string customCreateStatements()

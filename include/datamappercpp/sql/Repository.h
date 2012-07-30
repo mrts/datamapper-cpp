@@ -37,7 +37,7 @@ public:
     { }
 
     template <typename T>
-    void accessField(const Field<T>& , const T& field)
+    void visitField(const Field<T>& , const T& field)
     {
         // TODO: *_statement[label] = field
         *_statement << field;
@@ -59,7 +59,7 @@ public:
     {}
 
     template <typename T>
-    void accessField(const Field<T>& , T& field)
+    void visitField(const Field<T>& , T& field)
     {
         // TODO: field = *_result[label]
         field = _result.get<T>(_counter++);
