@@ -6,5 +6,7 @@
 lib/
 obj/
 bin/
+Debug/
+Release/
 datamappercpp-test
 test.sqlite
