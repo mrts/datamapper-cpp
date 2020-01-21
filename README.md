@@ -2,7 +2,8 @@
 
 *datamapper-cpp* is an object-relational mapper for C++ and SQLite. It is a thin layer on top of
 [dbc-cpp](https://github.com/mrts/datamapper-cpp), a lightweight database access library
-for C++ with JDBC-like *ResultSet* interface. 
+for C++ with JDBC-like *ResultSet* interface. It is stable and has been running in production
+in an industrial system since 2012.
 
 ## Features
 
